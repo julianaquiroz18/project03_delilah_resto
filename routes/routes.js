@@ -1,29 +1,49 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require("sequelize");
-const { getModels, getUserInfo, login } = require('../middlewares/middlewares');
+const { getModels, getUserInfo, login, checkIfAdmin } = require('../middlewares/middlewares');
+const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
 const { registerSchema } = require('../schemas/schemas');
 
+/**
+ * Schema validator
+ */
 const { Validator } = require('express-json-validator-middleware');
 const validator = new Validator({ allErrors: true });
 const validate = validator.validate;
 
-router.get("/users", getModels, async(req, res) => {
+/**
+ * Get user list (Only admin)
+ */
+router.get("/users", getModels, jwtExtract, verifyToken, checkIfAdmin, async(req, res) => {
     const User = req.models.User;
     const userList = await User.findAll();
     res.status(200).json(userList);
 });
 
+/**
+ * Create user
+ */
 router.post("/users", validate({ body: registerSchema }), getUserInfo, getModels, async(req, res) => {
     const User = req.models.User;
     const newUser = await User.create(req.userInfo);
     res.status(200).json(newUser);
 });
 
-router.get("/users/login", login, (req, res) => {
-    res.status(200).json(req.userInfo);
+/**
+ * Login
+ */
+router.get("/users/login", login, jwtGenerator, (req, res) => {
+    res.status(200).json({
+        message: "Successful login",
+        token: req.token
+    });
 });
 
+/**
+ * Get user by id (only admin)
+ * User can only acces to self information using "me" 
+ */
 router.get("/users/:userID", getModels, async(req, res) => {
     const User = req.models.User;
     const user = await User.findOne({

@@ -45,8 +45,19 @@ async function login(req, res, next) {
     }
 };
 
+function checkIfAdmin(req, res, next) {
+    if (req.userInfo.isAdmin === false) {
+        const error = new Error("You don't have permission to complete this action");
+        error.status = 403;
+        next(error);
+    } else {
+        next();
+    }
+}
+
 module.exports = {
     getModels,
     getUserInfo,
-    login
+    login,
+    checkIfAdmin
 }
