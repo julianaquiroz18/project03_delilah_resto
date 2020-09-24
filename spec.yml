@@ -1,0 +1,403 @@
+openapi: 3.0.0
+servers:
+  - description: localhost server
+    url: http://localhost:9091
+info:
+  description: API para pedidos de comida deliciosa. Como cliente, podras registrarte, ver el listado de nuestros productos y realizar una orden. Los administradores del restaurante tienen la posibilidad de recibir pedidos y actualizarlos.
+  version: "1.0.0"
+  title: Delilah Resto
+  contact:
+    email: delilah_resto@delilah.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: users
+    description: Operations available to users
+  - name: admins
+    description: Operations available to admins
+paths:
+  /users:
+    get:
+      tags:
+      - admins
+      summary: Users list
+      operationId: getUsers
+      description: Get all users 
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Error you are not authorized
+    post:
+      tags: 
+      - users
+      summary: Create new user
+      operationId: UserRegister
+      description: Include new user in database
+      responses:
+        '201':
+          description: User created
+        '400':
+          description: Invalid input  
+        '409':
+          description: User already exist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        description: New user information
+  /users/login:
+    post:
+      tags: 
+      - users
+      - admins
+      summary: Login to Delilah Resto 
+      operationId: loginToDelilah
+      description: Return JWT required to place orders with authentication
+      responses:
+        '200':
+          description: Successful login
+        '401':
+          description: Wrong user/email or password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginData'
+        description: User login information    
+  /users/{userID}:
+    get:
+      tags:
+      - users
+      - admins
+      summary: User information
+      operationId: getUserInformation
+      description: Get specific user information. User no admin only can access to "me" 
+      parameters: 
+        - name: userID
+          in: path
+          required: true
+          description: User ID. Use "me" for user identified by JWT
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          description: Error you are not authorized        
+        '404':
+          description: Invalid user ID. User does not exist
+    put:
+      tags: 
+      - users
+      - admins
+      summary: Update user information
+      operationId: updateUserInformation
+      description: As user authenticated only can edit himself
+      parameters: 
+        - name: userID
+          in: path
+          required: true
+          description: User ID. Use "me" for user identified by JWT
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200': 
+          description: User information was updated
+        '400':
+          description: Invalid input
+        '403':
+          description: Error you are not authorized  
+        '404':
+          description: Invalid user ID. User does not exist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        description: User information        
+  /products:
+    get:
+      tags:
+      - users
+      - admins
+      summary: Products list
+      operationId: getProducts
+      description: Get all products
+      responses:
+        '200':
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      tags: 
+      - admins
+      summary: Include new product
+      operationId: createProduct
+      description: Create new product
+      security:
+      - bearerAuth: []
+      responses:
+        '200': 
+          description: Product created
+        '400':
+          description: Invalid input
+        '403':
+          description: Error you are not authorized  
+        '404':
+          description: Product already exist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+        description: Product information   
+  /products/{productID}:
+    get:
+      tags:
+      - users
+      - admins
+      summary: Product information
+      operationId: getProductInformation
+      description: Get specific product information 
+      parameters: 
+        - name: productID
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Invalid product ID. Product does not exist
+    put:
+      tags: 
+      - admins
+      summary: Update product information
+      operationId: updateProductInformation
+      description: Update specific product information
+      parameters: 
+        - name: productID
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200': 
+          description: Product information was updated
+        '400':
+          description: Invalid input 
+        '403':
+          description: Error you are not authorized  
+        '404':
+          description: Invalid product ID. User does not exist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+        description: Product information    
+  /orders:
+    get:
+      tags:
+      - users
+      - admins
+      summary: Orders list
+      operationId: getOrders
+      description: With user token can access only to their own orders. With admin token can get all orders 
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Orders list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '403':
+          description: Error you are not authorized          
+    post:
+      tags: 
+      - users
+      summary: Place new order
+      operationId: placeOrder
+      description: Place new order
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Order placed
+        '403':
+          description: Error you are not authorized  
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+        description: New order information  
+  /orders/{orderID}:
+    get:
+      tags:
+      - users
+      - admins
+      summary: Order information
+      operationId: getOrderInformation
+      description: Get specific order information 
+      parameters: 
+        - name: orderID
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '403':
+          description: Error you are not authorized        
+        '404':
+          description: Invalid order ID. Order does not exist
+    put:
+      tags: 
+      - admins
+      summary: Update order information
+      operationId: updateOrderInformation
+      description: Update specific order information
+      parameters: 
+        - name: orderID
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200': 
+          description: Order information was updated
+        '400':
+          description: Invalid input  
+        '403':
+          description: Error you are not authorized  
+        '404':
+          description: Invalid order ID. Order does not exist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+        description: Order information    
+components:
+  securitySchemes:
+    bearerAuth:            
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginData:
+      type: object
+      required:
+        - usernameOrEmail
+        - password
+      properties:
+        usernameOrEmail:
+          type: string
+          example: queen_freddie, freddiemercury@gmail.com
+        password:
+          type: string
+          example: Password123*
+    User:
+      type: object
+      required:
+        - username
+        - fullname
+        - email
+        - phoneNumber
+        - address
+        - password
+      properties:
+        username:
+          type: string
+          example: queen_freddie
+        fullname:
+          type: string
+          example: Freddie Mercury
+        email:
+          type: string
+          format: email
+          example: freddiemercury@gmail.com
+        phoneNumber:
+          type: string
+          example: +447712345675
+        address: 
+          type: string
+          example: 1 Logan PlKensignton, London W8 6DE, UK 
+        password:
+          type: string
+          example: Password123*
+        isAdmin:
+          type: boolean
+    Product:
+      type: object
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          example: Hamburguesa Clásica
+        price:
+          type: number
+          example: 660
+    Order:
+      type: object
+      required:
+        - products
+        - paymentMethod
+      properties:
+        products:
+          type: string
+          example: 1,1,2
+        paymentMethod: 
+          type: string
+          example: Card, Cash 
+        
