@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require("sequelize");
-const { getModels, getUserInfo, login, checkIfAdmin } = require('../middlewares/middlewares');
+const { getModels, getUserInfo, checkUser, login, checkIfAdmin } = require('../middlewares/middlewares');
 const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
 const { registerSchema } = require('../schemas/schemas');
 
@@ -24,10 +24,11 @@ router.get("/users", getModels, jwtExtract, verifyToken, checkIfAdmin, async(req
 /**
  * Create user
  */
-router.post("/users", validate({ body: registerSchema }), getUserInfo, getModels, async(req, res) => {
+router.post("/users", validate({ body: registerSchema }), getUserInfo, getModels, checkUser, async(req, res) => {
     const User = req.models.User;
     const newUser = await User.create(req.userInfo);
-    res.status(200).json(newUser);
+    delete newUser.password;
+    res.status(201).json(newUser);
 });
 
 /**
@@ -44,16 +45,32 @@ router.get("/users/login", login, jwtGenerator, (req, res) => {
  * Get user by id (only admin)
  * User can only acces to self information using "me" 
  */
-router.get("/users/:userID", getModels, async(req, res) => {
+router.get("/users/:userID", getModels, jwtExtract, verifyToken, async(req, res) => {
     const User = req.models.User;
-    const user = await User.findOne({
-        where: { id: Number(req.params.userID) }
-    });
-    if (user === null) {
-        res.status(404).end("Invalid user ID / User does not exist")
-    } else {
+    if (req.userInfo.isAdmin) {
+        try {
+            const user = await User.findOne({
+                where: { id: Number(req.params.userID) }
+            });
+            res.status(200).json(user);
+        } catch (error) {
+            res.status(404).send({
+                code: 404,
+                error: "Invalid user ID / User does not exist"
+            });
+        };
+    };
+
+    if (req.params.userID === "me") {
+        const user = await User.findOne({
+            where: { id: Number(req.userInfo.id) }
+        });
         res.status(200).json(user);
     }
+    res.status(404).send({
+        code: 404,
+        error: "Invalid URI"
+    });
 });
 
 
