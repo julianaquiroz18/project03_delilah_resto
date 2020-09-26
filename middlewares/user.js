@@ -2,19 +2,10 @@ const { getDBModels } = require('../database');
 const { Op } = require("sequelize");
 
 /**
- * Get models from database
- */
-async function getModels(req, res, next) {
-    const models = await getDBModels();
-    req.models = models;
-    next();
-};
-
-/**
  * Get user information from registration
  */
 function getUserInfo(req, res, next) {
-    req.userInfo = {
+    req.userRegistrationInfo = {
         username: req.body.username,
         fullname: req.body.fullname,
         email: req.body.email,
@@ -33,13 +24,13 @@ async function checkUser(req, res, next) {
     const userInfo = await User.findAll({
         where: {
             [Op.or]: [
-                { username: req.userInfo.username },
-                { email: req.userInfo.email }
+                { username: req.userRegistrationInfo.username },
+                { email: req.userRegistrationInfo.email }
             ]
         }
     });
     if (userInfo.length === 0) {
-        next()
+        next();
     } else {
         const error = new Error("User or email already exist");
         error.status = 409;
@@ -72,8 +63,8 @@ async function login(req, res, next) {
         next(error);
     } else {
         req.userInfo = userInfo;
-        next()
-    }
+        next();
+    };
 };
 /**
  * Check if user is admin
@@ -85,15 +76,37 @@ function checkIfAdmin(req, res, next) {
         next(error);
     } else {
         next();
+    };
+};
+
+/**
+ * Check if userID is valid
+ */
+async function checkUserID(req, res, next) {
+    const User = (await getDBModels()).User;
+    if (req.params.userID === "me") {
+        return next();
+    };
+    try {
+        const id = await User.findOne({
+            where: { id: Number(req.params.userID) }
+        });
+        if (id) {
+            return next();
+        } else {
+            throw error;
+        }
+    } catch {
+        const error = new Error("Invalid User ID. User does not exist");
+        error.status = 404;
+        next(error);
     }
-}
-
-
+};
 
 module.exports = {
-    getModels,
     getUserInfo,
     login,
     checkIfAdmin,
-    checkUser
+    checkUser,
+    checkUserID
 }

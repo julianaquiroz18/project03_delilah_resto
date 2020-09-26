@@ -1,13 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { Op } = require("sequelize");
-const { getModels, getUserInfo, checkUser, login, checkIfAdmin } = require('../middlewares/middlewares');
+
+/**
+ * Middlewares
+ */
+const { getModels } = require('../middlewares/dbModels');
+const { getUserInfo, checkUser, login, checkIfAdmin, checkUserID } = require('../middlewares/user');
+const { getProductInfo, checkProduct, checkProductID } = require('../middlewares/product')
 const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
-const { registerSchema } = require('../schemas/schemas');
+
 
 /**
  * Schema validator
  */
+const { registerSchema, productSchema } = require('../schemas/schemas');
 const { Validator } = require('express-json-validator-middleware');
 const validator = new Validator({ allErrors: true });
 const validate = validator.validate;
@@ -22,11 +28,11 @@ router.get("/users", getModels, jwtExtract, verifyToken, checkIfAdmin, async(req
 });
 
 /**
- * Create user
+ * User registration
  */
 router.post("/users", validate({ body: registerSchema }), getUserInfo, getModels, checkUser, async(req, res) => {
     const User = req.models.User;
-    const newUser = await User.create(req.userInfo);
+    const newUser = await User.create(req.userRegistrationInfo);
     delete newUser.password;
     res.status(201).json(newUser);
 });
@@ -41,36 +47,99 @@ router.get("/users/login", login, jwtGenerator, (req, res) => {
     });
 });
 
+
 /**
  * Get user by id (only admin)
  * User can only acces to self information using "me" 
  */
-router.get("/users/:userID", getModels, jwtExtract, verifyToken, async(req, res) => {
+router.get("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, async(req, res) => {
     const User = req.models.User;
-    if (req.userInfo.isAdmin) {
-        try {
-            const user = await User.findOne({
-                where: { id: Number(req.params.userID) }
-            });
-            res.status(200).json(user);
-        } catch (error) {
-            res.status(404).send({
-                code: 404,
-                error: "Invalid user ID / User does not exist"
-            });
-        };
-    };
-
     if (req.params.userID === "me") {
         const user = await User.findOne({
             where: { id: Number(req.userInfo.id) }
         });
-        res.status(200).json(user);
+        return res.status(200).json(user);
     }
-    res.status(404).send({
-        code: 404,
-        error: "Invalid URI"
+    if (req.userInfo.isAdmin) {
+        const user = await User.findOne({
+            where: { id: Number(req.params.userID) }
+        });
+        delete user.dataValues.password;
+        return res.status(200).json(user);
+    }
+    res.status(403).send({
+        code: 403,
+        message: "You don't have permission to complete this action"
     });
+});
+
+
+/**
+ * Update user by id (only admin)
+ * User can only acces to self information using "me" 
+ */
+router.put("/users/:userID", getModels, jwtExtract, verifyToken, validate({ body: registerSchema }), getUserInfo, checkUserID, async(req, res) => {
+    const User = req.models.User;
+    if (req.params.userID === "me") {
+        await User.update(req.userRegistrationInfo, {
+            where: { id: Number(req.userInfo.id) }
+        });
+        return res.status(200).send("User information was updated");
+
+    }
+    if (req.userInfo.isAdmin) {
+        await User.update(req.userRegistrationInfo, {
+            returning: true,
+            where: { id: Number(req.params.userID) }
+        });
+        return res.status(200).send("User information was updated");
+    }
+    res.status(403).send({
+        code: 403,
+        message: "You don't have permission to complete this action"
+    });
+});
+
+
+/**
+ * Get products list
+ */
+router.get("/products", getModels, async(req, res) => {
+    const Products = req.models.Product;
+    const productsList = await Products.findAll();
+    res.status(200).json(productsList);
+});
+
+/**
+ * Create product
+ */
+router.post("/products", jwtExtract, verifyToken, checkIfAdmin, validate({ body: productSchema }), getProductInfo, checkProduct, getModels, async(req, res) => {
+    const Products = req.models.Product;
+    const newProduct = await Products.create(req.newProduct);
+    res.status(201).json(newProduct);
+});
+
+
+/**
+ * Get product by id 
+ */
+router.get("/products/:productID", getModels, checkProductID, async(req, res) => {
+    const Products = req.models.Product;
+    const product = await Products.findOne({
+        where: { id: Number(req.params.productID) }
+    });
+    res.status(200).json(product);
+});
+
+/**
+ * Update product by id 
+ */
+router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, validate({ body: productSchema }), checkProductID, getModels, async(req, res) => {
+    const Products = req.models.Product;
+    await Products.update(req.body, {
+        where: { id: Number(req.params.productID) }
+    });
+    res.status(200).send("Product information was updated");
 });
 
 

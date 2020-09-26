@@ -11,6 +11,16 @@ const registerSchema = {
     }
 }
 
+const productSchema = {
+    type: 'object',
+    required: ['name', 'price'],
+    properties: {
+        name: { type: 'string' },
+        price: { type: 'integer' }
+    }
+}
+
 module.exports = {
-    registerSchema
+    registerSchema,
+    productSchema
 }
