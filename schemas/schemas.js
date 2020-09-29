@@ -20,7 +20,17 @@ const productSchema = {
     }
 }
 
+const orderSchema = {
+    type: 'object',
+    required: ['products', 'paymentMethod'],
+    properties: {
+        products: { type: 'array' },
+        paymentMethod: { type: 'string' }
+    }
+}
+
 module.exports = {
     registerSchema,
-    productSchema
+    productSchema,
+    orderSchema
 }

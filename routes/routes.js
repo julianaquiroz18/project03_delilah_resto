@@ -13,7 +13,7 @@ const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
 /**
  * Schema validator
  */
-const { registerSchema, productSchema } = require('../schemas/schemas');
+const { registerSchema, productSchema, orderSchema } = require('../schemas/schemas');
 const { Validator } = require('express-json-validator-middleware');
 const validator = new Validator({ allErrors: true });
 const validate = validator.validate;
@@ -85,7 +85,6 @@ router.put("/users/:userID", getModels, jwtExtract, verifyToken, validate({ body
             where: { id: Number(req.userInfo.id) }
         });
         return res.status(200).send("User information was updated");
-
     }
     if (req.userInfo.isAdmin) {
         await User.update(req.userRegistrationInfo, {
@@ -111,7 +110,7 @@ router.get("/products", getModels, async(req, res) => {
 });
 
 /**
- * Create product
+ * Create product (only admin)
  */
 router.post("/products", jwtExtract, verifyToken, checkIfAdmin, validate({ body: productSchema }), getProductInfo, checkProduct, getModels, async(req, res) => {
     const Products = req.models.Product;
@@ -132,7 +131,7 @@ router.get("/products/:productID", getModels, checkProductID, async(req, res) =>
 });
 
 /**
- * Update product by id 
+ * Update product by id (only admin)
  */
 router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, validate({ body: productSchema }), checkProductID, getModels, async(req, res) => {
     const Products = req.models.Product;
@@ -141,6 +140,32 @@ router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, valida
     });
     res.status(200).send("Product information was updated");
 });
+
+/**
+ * Delete product by id (only admin)
+ */
+router.delete("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, checkProductID, getModels, async(req, res) => {
+    const Products = req.models.Product;
+    await Products.destroy({
+        where: { id: Number(req.params.productID) }
+    });
+    res.status(200).send("Product was deleted");
+});
+
+/**
+ * Create order (only user)
+ */
+router.post("/orders", jwtExtract, verifyToken, validate({ body: orderSchema }), getModels, async(req, res) => {
+    const Orders = req.models.Order;
+    const newOrder = await Orders.create({
+        status: "nuevo",
+        paymentMethod: req.body.paymentMethod,
+    });
+    newOrder.setUser(req.userInfo.id);
+    newOrder.addProduct(req.body.products);
+    res.status(201).send(`Your order was created! Order number: ${newOrder.id}`);
+});
+
 
 
 module.exports = {

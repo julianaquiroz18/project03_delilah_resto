@@ -1,5 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const { DATABASE, HOST, PORT, USERNAME, PASSWORD } = require('./config');
+const moment = require('moment'); // require
+
 
 async function initDatabase() {
     if (!global.__sequalize) {
@@ -73,13 +75,9 @@ async function createModels(sequelize) {
             allowNull: false
         },
         time: {
-            type: DataTypes.DATE,
-            defaultValue: sequelize.NOW,
-            allowNull: false
-        },
-        product: {
-            type: DataTypes.INTEGER,
-            allowNull: false
+            type: DataTypes.STRING,
+            defaultValue: moment().format('DD MM YYYY hh:mm:ss')
+
         },
         paymentMethod: {
             type: DataTypes.STRING,
