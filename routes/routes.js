@@ -5,8 +5,8 @@ const router = express.Router();
  * Middlewares
  */
 const { getModels } = require('../middlewares/dbModels');
-const { getUserInfo, checkUser, login, checkIfAdmin, checkUserID } = require('../middlewares/user');
-const { getProductInfo, checkProduct, checkProductID } = require('../middlewares/product')
+const { getUserInfo, checkUser, login, checkIfAdmin, checkUserID, checkUserToUpdate } = require('../middlewares/user');
+const { getProductInfo, checkProduct, checkProductID, checkProducToUpdate } = require('../middlewares/product')
 const { checkProductArray, checkOrderID } = require('../middlewares/order');
 const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
 
@@ -79,7 +79,7 @@ router.get("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, as
  * Update user by id (only admin)
  * User can only acces to self information using "me" 
  */
-router.put("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, validate({ body: registerSchema }), getUserInfo, checkUser, async(req, res) => {
+router.put("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, validate({ body: registerSchema }), getUserInfo, checkUserToUpdate, async(req, res) => {
     const User = req.models.User;
     if (req.params.userID === "me") {
         await User.update(req.userRegistrationInfo, {
@@ -134,7 +134,7 @@ router.get("/products/:productID", getModels, checkProductID, async(req, res) =>
 /**
  * Update product by id (only admin)
  */
-router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, checkProductID, validate({ body: productSchema }), getProductInfo, checkProduct, getModels, async(req, res) => {
+router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, checkProductID, validate({ body: productSchema }), getProductInfo, checkProducToUpdate, getModels, async(req, res) => {
     const Products = req.models.Product;
     await Products.update(req.body, {
         where: { id: Number(req.params.productID) }
@@ -179,7 +179,12 @@ router.get("/orders", getModels, jwtExtract, verifyToken, async(req, res) => {
             attributes: ['img', 'name', 'price']
         }
     });
-    res.status(200).json(userOrders);
+    if (userOrders.length != 0) {
+        res.status(200).json(userOrders);
+    } else {
+        res.status(200).send("You dont have any order");
+    }
+
 });
 
 /**
@@ -228,9 +233,9 @@ router.get("/orders/:orderID", getModels, jwtExtract, verifyToken, checkOrderID,
     if (userOrder.length != 0) {
         res.status(200).json(userOrder);
     } else {
-        res.status(403).send({
-            code: 403,
-            message: "You don't have permission to complete this action"
+        res.status(404).send({
+            code: 404,
+            message: "Incorrect Order ID"
         });
     }
 });

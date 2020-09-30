@@ -49,8 +49,34 @@ async function checkProductID(req, res, next) {
     }
 };
 
+/**
+ * Check if product already exist to update product Information
+ */
+async function checkProducToUpdate(req, res, next) {
+    const Products = (await getDBModels()).Product;
+    const newProductName = req.newProduct.name;
+    const currentProductInfo = await Products.findOne({
+        where: { id: Number(req.params.productID) }
+    });
+    const currentProductname = currentProductInfo.name;
+    if (newProductName === currentProductname) {
+        return next();
+    }
+    const productInfo = await Products.findAll({
+        where: { name: newProductName }
+    });
+    if (productInfo.length === 0) {
+        return next();
+    } else {
+        const error = new Error("This product already exist");
+        error.status = 409;
+        next(error);
+    };
+}
+
 module.exports = {
     getProductInfo,
     checkProduct,
-    checkProductID
+    checkProductID,
+    checkProducToUpdate
 }

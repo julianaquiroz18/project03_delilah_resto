@@ -115,10 +115,47 @@ async function checkUserID(req, res, next) {
     }
 };
 
+/**
+ * Check if username and email already exist to update user Information
+ */
+async function checkUserToUpdate(req, res, next) {
+    const User = (await getDBModels()).User;
+    const newUsername = req.userRegistrationInfo.username;
+    const newEmail = req.userRegistrationInfo.email;
+    let currentUsername = req.userInfo.username;
+    let currentEmail = req.userInfo.email;
+    if (req.params.userID != "me") {
+        const currentInfo = await User.findOne({
+            where: { id: Number(req.params.userID) }
+        })
+        currentUsername = currentInfo.username;
+        currentEmail = currentInfo.email;
+    }
+    if (newUsername === currentUsername && newEmail === currentEmail) {
+        return next();
+    }
+    const userInfo = await User.findAll({
+        where: {
+            [Op.or]: [
+                { username: newUsername },
+                { email: newEmail }
+            ]
+        }
+    });
+    if (userInfo.length === 0) {
+        return next();
+    } else {
+        const error = new Error("User or email already exist");
+        error.status = 409;
+        next(error);
+    }
+}
+
 module.exports = {
     getUserInfo,
     login,
     checkIfAdmin,
     checkUser,
-    checkUserID
+    checkUserID,
+    checkUserToUpdate
 }

@@ -190,6 +190,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'        
       requestBody:
         content:
           application/json:
@@ -318,6 +324,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'        
       requestBody:
         content:
           application/json:
@@ -509,9 +521,11 @@ components:
         usernameOrEmail:
           type: string
           example: queen_freddie, freddiemercury@gmail.com
+          description:  Alphanumeric characters are allowed. Only _-. special characteres allowed.
         password:
           type: string
           example: Password123*
+          description: Alphanumeric and special characters are allowed.  
     LoginToken:
       type: object
       properties:
@@ -548,6 +562,7 @@ components:
           type: string
           format: email
           example: freddiemercury@gmail.com
+          description: Alphanumeric characters are allowed. Only _-. special characteres allowed.  
         phoneNumber:
           type: string
           example: +447712345675
@@ -557,6 +572,7 @@ components:
         password:
           type: string
           example: Password123*
+          description: Alphanumeric and special characters are allowed. 
         isAdmin:
           type: boolean
     Product:
@@ -613,4 +629,4 @@ components:
           type: object
         paymentMethod: 
           type: string
-          example: Card, Cash  
+          example: Card, Cash
