@@ -59,6 +59,10 @@ async function createModels(sequelize) {
     }, { timestamps: false });
 
     const Product = sequelize.define('Product', {
+        img: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         name: {
             type: DataTypes.STRING,
             allowNull: false

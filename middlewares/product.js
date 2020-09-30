@@ -4,6 +4,7 @@ const { getDBModels } = require('../database');
  */
 function getProductInfo(req, res, next) {
     req.newProduct = {
+        img: req.body.img,
         name: req.body.name,
         price: req.body.price
     };

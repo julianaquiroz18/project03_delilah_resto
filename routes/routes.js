@@ -7,13 +7,14 @@ const router = express.Router();
 const { getModels } = require('../middlewares/dbModels');
 const { getUserInfo, checkUser, login, checkIfAdmin, checkUserID } = require('../middlewares/user');
 const { getProductInfo, checkProduct, checkProductID } = require('../middlewares/product')
+const { checkProductArray, checkOrderID } = require('../middlewares/order');
 const { jwtGenerator, jwtExtract, verifyToken } = require('../middlewares/jwt');
 
 
 /**
  * Schema validator
  */
-const { registerSchema, productSchema, orderSchema } = require('../schemas/schemas');
+const { registerSchema, productSchema, orderSchema, orderStatusSchema } = require('../schemas/schemas');
 const { Validator } = require('express-json-validator-middleware');
 const validator = new Validator({ allErrors: true });
 const validate = validator.validate;
@@ -78,7 +79,7 @@ router.get("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, as
  * Update user by id (only admin)
  * User can only acces to self information using "me" 
  */
-router.put("/users/:userID", getModels, jwtExtract, verifyToken, validate({ body: registerSchema }), getUserInfo, checkUserID, async(req, res) => {
+router.put("/users/:userID", getModels, jwtExtract, verifyToken, checkUserID, validate({ body: registerSchema }), getUserInfo, checkUser, async(req, res) => {
     const User = req.models.User;
     if (req.params.userID === "me") {
         await User.update(req.userRegistrationInfo, {
@@ -133,7 +134,7 @@ router.get("/products/:productID", getModels, checkProductID, async(req, res) =>
 /**
  * Update product by id (only admin)
  */
-router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, validate({ body: productSchema }), checkProductID, getModels, async(req, res) => {
+router.put("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, checkProductID, validate({ body: productSchema }), getProductInfo, checkProduct, getModels, async(req, res) => {
     const Products = req.models.Product;
     await Products.update(req.body, {
         where: { id: Number(req.params.productID) }
@@ -153,9 +154,38 @@ router.delete("/products/:productID", jwtExtract, verifyToken, checkIfAdmin, che
 });
 
 /**
- * Create order (only user)
+ * Get all orders 
  */
-router.post("/orders", jwtExtract, verifyToken, validate({ body: orderSchema }), getModels, async(req, res) => {
+router.get("/orders", getModels, jwtExtract, verifyToken, async(req, res) => {
+    const Orders = req.models.Order;
+    const User = req.models.User;
+    const Product = req.models.Product;
+    if (req.userInfo.isAdmin) {
+        const ordersList = await Orders.findAll({
+            include: [{
+                model: User,
+                attributes: ['fullname', 'username', 'email', 'phoneNumber', 'address'],
+            }, {
+                model: Product,
+                attributes: ['img', 'name', 'price']
+            }]
+        });
+        return res.status(200).json(ordersList);
+    }
+    const user = await User.findByPk(req.userInfo.id);
+    const userOrders = await user.getOrders({
+        include: {
+            model: Product,
+            attributes: ['img', 'name', 'price']
+        }
+    });
+    res.status(200).json(userOrders);
+});
+
+/**
+ * Create order
+ */
+router.post("/orders", jwtExtract, verifyToken, validate({ body: orderSchema }), checkProductArray, getModels, async(req, res) => {
     const Orders = req.models.Order;
     const newOrder = await Orders.create({
         status: "nuevo",
@@ -166,38 +196,56 @@ router.post("/orders", jwtExtract, verifyToken, validate({ body: orderSchema }),
     res.status(201).send(`Your order was created! Order number: ${newOrder.id}`);
 });
 
+/**
+ * Get Order by id (only admin)
+ * User can only acces to self orders 
+ */
+router.get("/orders/:orderID", getModels, jwtExtract, verifyToken, checkOrderID, async(req, res) => {
+    const Orders = req.models.Order;
+    const User = req.models.User;
+    const Product = req.models.Product;
+    if (req.userInfo.isAdmin) {
+        const order = await Orders.findOne({
+            include: [{
+                model: User,
+                attributes: ['fullname', 'username', 'email', 'phoneNumber', 'address'],
+            }, {
+                model: Product,
+                attributes: ['img', 'name', 'price'],
+            }],
+            where: { id: Number(req.params.orderID) }
+        });
+        return res.status(200).json(order);
+    }
+    const user = await User.findByPk(req.userInfo.id);
+    const userOrder = await user.getOrders({
+        include: {
+            model: Product,
+            attributes: ['img', 'name', 'price'],
+        },
+        where: { id: Number(req.params.orderID) }
+    });
+    if (userOrder.length != 0) {
+        res.status(200).json(userOrder);
+    } else {
+        res.status(403).send({
+            code: 403,
+            message: "You don't have permission to complete this action"
+        });
+    }
+});
 
+/**
+ * Update order by id (only admin)
+ */
+router.put("/orders/:orderID", jwtExtract, verifyToken, checkIfAdmin, checkOrderID, validate({ body: orderStatusSchema }), getModels, async(req, res) => {
+    const Orders = req.models.Order;
+    await Orders.update(req.body, {
+        where: { id: Number(req.params.orderID) }
+    });
+    res.status(200).send(`Order #${req.params.orderID} status was updated`);
+});
 
 module.exports = {
     router: router
 }
-
-
-
-// router.get(BASE_PATH, async (req, res) => {
-//     // const Deportistas = (await getModels()).Deportistas;
-//     const { Deportista, Pais } = await getModels();
-//     const data = await Deportista.findAll({
-//       include: [
-//         {
-//           model: Pais,
-//           as: 'pais',
-//           attributes: ['nombre']
-//         }
-//       ]
-//     });
-//     res.json(data);
-//   })
-
-//   router.post(`${BASE_PATH}`, async (req, res) => {
-//     const { Deportista, Pais } = await getModels();
-//     const pais = await Pais.findOne({nombre: req.body.pais});
-//     const deportista = await Deportista.create(req.body);
-//     deportista.paisId = pais.id;
-//     try {
-//       const data = await deportista.save();
-//       res.status(202).json(data);
-//     } catch (error) {
-//       res.status(500).json({message: error.message});
-//     }
-//   })

@@ -1,5 +1,6 @@
 const { getDBModels } = require('../database');
 const { Op } = require("sequelize");
+const CryptoJS = require("crypto-js");
 
 /**
  * Get user information from registration
@@ -11,10 +12,15 @@ function getUserInfo(req, res, next) {
         email: req.body.email,
         phoneNumber: req.body.phoneNumber,
         address: req.body.address,
-        password: req.body.password
+        password: encryptPassword(req.body.password),
+        isAdmin: req.body.isAdmin || 0
     };
     next();
 };
+
+function encryptPassword(password) {
+    return CryptoJS.AES.encrypt(password, `${process.env.SECRET_KEY_PASS}`).toString();
+}
 
 /**
  * Check if user already exist
@@ -47,25 +53,31 @@ async function login(req, res, next) {
     const User = (await getDBModels()).User;
     const userInfo = await User.findAll({
         where: {
-            [Op.and]: [{
-                    [Op.or]: [
-                        { username: usernameOrEmail },
-                        { email: usernameOrEmail }
-                    ]
-                },
-                { password: passwordLogin }
+            [Op.or]: [
+                { username: usernameOrEmail },
+                { email: usernameOrEmail }
             ]
         }
     });
     if (userInfo.length === 0) {
-        const error = new Error("Wrong user/email or password");
+        const error = new Error("Wrong user/email");
         error.status = 401;
-        next(error);
-    } else {
-        req.userInfo = userInfo;
-        next();
+        return next(error);
     };
+    if (passwordLogin != decryptPassword(userInfo[0].dataValues.password)) {
+        const error = new Error("Wrong password");
+        error.status = 401;
+        return next(error);
+    };
+    req.userInfo = userInfo;
+    next();
 };
+
+function decryptPassword(cipherPassword) {
+    const bytes = CryptoJS.AES.decrypt(cipherPassword, `${process.env.SECRET_KEY_PASS}`);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}
+
 /**
  * Check if user is admin
  */

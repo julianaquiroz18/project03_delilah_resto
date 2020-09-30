@@ -4,21 +4,24 @@ const registerSchema = {
     properties: {
         username: { type: 'string' },
         fullname: { type: 'string' },
-        email: { type: 'string', pattern: "^[A-Za-z0-9]*@[a-z]*.com$" },
+        email: { type: 'string', pattern: "^[A-Za-z0-9._-]*@[a-z]*.com$" },
         phoneNumber: { type: 'string' },
         address: { type: 'string' },
-        password: { type: 'string', pattern: '^[A-Za-z]{4,}[0-9]{1,}$' }
+        password: { type: 'string', pattern: '^[A-Za-z0-9.!#$%&‘*+=?^_`{|}~-]{4,}$' },
+        isAdmin: { tipe: 'integer' }
     }
 }
 
 const productSchema = {
     type: 'object',
-    required: ['name', 'price'],
+    required: ['img', 'name', 'price'],
     properties: {
+        img: { type: 'string' },
         name: { type: 'string' },
         price: { type: 'integer' }
     }
 }
+
 
 const orderSchema = {
     type: 'object',
@@ -29,8 +32,19 @@ const orderSchema = {
     }
 }
 
+const orderStatusSchema = {
+    type: 'object',
+    required: ['status'],
+    properties: {
+        status: { type: 'string' }
+    }
+}
+
+
+
 module.exports = {
     registerSchema,
     productSchema,
-    orderSchema
+    orderSchema,
+    orderStatusSchema
 }

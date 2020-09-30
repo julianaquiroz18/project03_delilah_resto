@@ -36,7 +36,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/User'
         '401':
+          description: Error. Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
           description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       tags: 
       - users
@@ -46,10 +56,22 @@ paths:
       responses:
         '201':
           description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
-          description: Invalid input  
+          description: Invalid input 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
           description: User already exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
@@ -67,8 +89,16 @@ paths:
       responses:
         '200':
           description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginToken'
         '401':
-          description: Wrong user/email or password
+          description: Incorrect credencials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
@@ -99,10 +129,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '401':
+          description: Error. Missing or invalid token   
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          description: Error you are not authorized        
+          description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'        
         '404':
-          description: Invalid user ID. User does not exist
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags: 
       - users
@@ -124,10 +168,28 @@ paths:
           description: User information was updated
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Error. Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          description: Error you are not authorized  
+          description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'        
         '404':
-          description: Invalid user ID. User does not exist
+          description:  Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
@@ -162,12 +224,30 @@ paths:
       responses:
         '200': 
           description: Product created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: Error you are not authorized  
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Product already exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
@@ -197,7 +277,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '404':
-          description: Invalid product ID. Product does not exist
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags: 
       - admins
@@ -218,16 +302,58 @@ paths:
           description: Product information was updated
         '400':
           description: Invalid input 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          description: Error you are not authorized  
+          description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Invalid product ID. User does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Product'
-        description: Product information    
+        description: Product information   
+    delete:
+      tags: 
+      - admins
+      summary: Delete Product
+      operationId: deleteProduct
+      description: Delete product by ID
+      parameters: 
+        - name: productID
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200': 
+          description: Product was deleted
+        '403':
+          description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Invalid product ID. User does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'    
   /orders:
     get:
       tags:
@@ -246,12 +372,17 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Order'
+                  $ref: '#/components/schemas/OrderInfo'
         '403':
-          description: Error you are not authorized          
+          description: Error you are not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'         
     post:
       tags: 
       - users
+      - admin
       summary: Place new order
       operationId: placeOrder
       description: Place new order
@@ -260,8 +391,24 @@ paths:
       responses:
         '201':
           description: Order placed
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'  
         '403':
           description: Error you are not authorized  
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Product does not exist 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'        
       requestBody:
         content:
           application/json:
@@ -293,9 +440,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
         '403':
-          description: Error you are not authorized        
+          description: Error you are not authorized   
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Invalid order ID. Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags: 
       - admins
@@ -315,16 +470,28 @@ paths:
         '200': 
           description: Order information was updated
         '400':
-          description: Invalid input  
+          description: Invalid input 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          description: Error you are not authorized  
+          description: Error you are not authorized 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Invalid order ID. Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Order'
+              $ref: '#/components/schemas/OrderStatus'
         description: Order information    
 components:
   securitySchemes:
@@ -345,6 +512,22 @@ components:
         password:
           type: string
           example: Password123*
+    LoginToken:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Successful login
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZU9yRW1haWwiOiJqZWZmcnNrOCIsInBhc3N3b3JkIjoib3Ryb3Bhc3N3b3JkMTIzIiwiaWF0IjoxNjAwOTY3NTc0LCJleHAiOjE2MDA5Njc2MzR9.J8rOtG_Q7_gvgeO_ySh_gmecNKglA2MA0t8q_3RYGhs
+    Error:
+      type: object
+      properties:
+        code: 
+          type: string
+        message:
+          type: string
     User:
       type: object
       required:
@@ -379,9 +562,13 @@ components:
     Product:
       type: object
       required:
+        - img
         - name
         - price
       properties:
+        img:
+          type: string
+          example: http://lorempixel.com/output/food-q-c-200-200-9.jpg
         name:
           type: string
           example: Hamburguesa Clásica
@@ -395,9 +582,35 @@ components:
         - paymentMethod
       properties:
         products:
-          type: string
-          example: 1,1,2
+          type: object
+          example: [1, 2, 3] 
         paymentMethod: 
           type: string
-          example: Card, Cash 
-        
+          example: Card, Cash
+    OrderStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status: 
+          type: string
+          example: confirmado, preparando, enviado, cancelado, entregado   
+    OrderInfo:
+      type: object
+      properties:
+        id:
+          type: number
+          example: 1
+        status: 
+          type: string
+          example: nuevo 
+        time: 
+          type: string
+          example: 29 09 2020 03:37:38  
+        products:
+          type: object
+        user:
+          type: object
+        paymentMethod: 
+          type: string
+          example: Card, Cash  

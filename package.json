@@ -19,6 +19,7 @@
     "homepage": "https://github.com/julianaquiroz18/project03_delilah_resto#readme",
     "dependencies": {
         "cors": "^2.8.5",
+        "crypto-js": "^4.0.0",
         "dotenv": "^8.2.0",
         "express": "^4.17.1",
         "express-json-validator-middleware": "^2.1.1",
