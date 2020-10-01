@@ -251,6 +251,18 @@ router.put("/orders/:orderID", jwtExtract, verifyToken, checkIfAdmin, checkOrder
     res.status(200).send(`Order #${req.params.orderID} status was updated`);
 });
 
+
+/**
+ * Delete order by id (only admin)
+ */
+router.delete("/orders/:orderID", jwtExtract, verifyToken, checkIfAdmin, checkOrderID, getModels, async(req, res) => {
+    const Orders = req.models.Order;
+    await Orders.destroy({
+        where: { id: Number(req.params.orderID) }
+    });
+    res.status(200).send("Order was deleted");
+});
+
 module.exports = {
     router: router
 }
